@@ -6,14 +6,14 @@
 - EclipseLink as a persistent store layer allows us to connect Polaris with a few different databases, the current steps that follow show the setup for a Postgres db 
 - [EclipseLink Supported Databases](https://eclipse.dev/eclipselink/documentation/2.4/concepts/app_tl_ext001.htm)
 - Currently added postgres as the persistence store for this repo
-- Required updated to ./gradle/libs.versions.toml
+- Required updated to [libs.versions.toml](./../gradle/libs.versions.toml)
     - Added dependency **postgresql = { module = "org.postgresql:postgresql", version = "42.6.0" }** under libraries
     - ```
         [libraries]
         postgresql = { module = "org.postgresql:postgresql", version = "42.6.0" }
         rest of library dependencies...
         ```
-- Required update to ./extension/persistence/eclipselink/src/main/resource/META-INF/persistence.xml
+- Required update to [persistence.xml](./../extension/persistence/eclipselink/src/main/resources/META-INF/persistence.xml)
     - This is to configure EclipseLink to connect to specified database and jdbc connection
     - Here we provide the jdbc connection details: url, username, password
     - For Postgres:
@@ -29,7 +29,7 @@
     - Also note that '{realm}' is required at the end of the DB url as this is replaced dynamically with the database name at runtime
     - Took me a while to figure that out lol
     - **TODO:** configure persistence.xml file to pull in environment variables or could configure to pull from AWS Secrets Manager, depending on environment maybe?
-- Required update to ./extension/persistence/eclipselink/build.gradle.kts
+- Required update to [build.gradle.kts](./../extension/persistence/eclipselink/build.gradle.kts)
     - include dependency for postgres
     - ```
         dependencies {
