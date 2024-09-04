@@ -28,6 +28,7 @@ dependencies {
   implementation(libs.eclipselink)
   implementation(platform(libs.dropwizard.bom))
   implementation("io.dropwizard:dropwizard-jackson")
+  implementation(libs.postgresql)
   compileOnly(libs.jetbrains.annotations)
 
   testImplementation(libs.h2)
