@@ -23,34 +23,67 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_DB: source_db
+      POSTGRES_DB: default-realm
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD: testing1234
     command:
       - "postgres"
       - "-c"
       - "wal_level=logical"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 2s
+      retries: 5
     networks:
       - polaris_network
 
   polaris:
+    # image: 459573696753.dkr.ecr.af-south-1.amazonaws.com/cloudza/polaris
     build:
       context: .
       network: host
+    # volumes:
+    #   - persistence_config:/app/resources
     ports:
       - "8181:8181"
       - "8182"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     environment:
-      AWS_REGION: us-west-1
+      AWS_REGION: $AWS_REGION
       AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
       AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: testing1234
+      DB_HOST: postgres
+    container_name: cloudza/polaris
     healthcheck:
       test: ["CMD", "curl", "http://localhost:8182/healthcheck"]
       interval: 10s
       timeout: 10s
       retries: 5
+    networks:
+      - polaris_network
+  
+  polaris-init:
+    build:
+      context: ./polaris-init
+      network: host
+    container_name: cloudza/polaris-init
+    depends_on:
+      polaris:
+        condition: service_healthy
+    environment:
+      CATALOG_NAME: demo_catalog
+      S3_WAREHOUSE_LOCATION: s3://polaris-test-data-lake/polaris_test/
+      POLARIS_ROLE_ARN: arn:aws:iam::479320942928:role/PolarisS3FullAccess
+      CATALOG_NAMESPACE: demo_namespace
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: testing1234
     networks:
       - polaris_network
 
@@ -60,17 +93,65 @@ services:
       dockerfile: ./notebooks/Dockerfile
       network: host
     ports:
-      - "8888:8888"
+      - "8889:8888"
     depends_on:
       polaris:
         condition: service_healthy
     environment:
-      AWS_REGION: us-west-2
+      AWS_REGION: $AWS_REGION
       POLARIS_HOST: polaris
     volumes:
       - notebooks:/home/jovyan/notebooks
     networks:
       - polaris_network
+  
+  spark:
+    platform: linux/x86_64
+    image: alexmerced/spark35notebook:latest
+    ports: 
+      - 8080:8080  # Master Web UI
+      - 7077:7077  # Master Port
+      - 8888:8888  # Notebook
+    depends_on:
+      polaris:
+        condition: service_healthy
+    environment:
+      AWS_REGION: $AWS_REGION
+      AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+      AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+    container_name: spark
+    user: docker
+    volumes:
+      - notebooks:/home/docker/workspace/jupyter_workspace/
+    networks:
+      - polaris_network
+
+  # glue_jupyter:
+  #   image: amazon/aws-glue-libs:glue_libs_4.0.0_image_01
+  #   ports:
+  #     - "4040:4040"
+  #     - "18080:18080"
+  #     - "8998:8998"
+  #     - "8888:8888"
+  #   command: /home/glue_user/jupyter/jupyter_start.sh
+  #   depends_on:
+  #     polaris:
+  #       condition: service_healthy
+  #   environment:
+  #     POLARIS_HOST: polaris
+  #     AWS_REGION: $AWS_REGION
+  #     AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+  #     AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+  #     DISABLE_SSL: true
+  #     DATALAKE_FORMATS: iceberg
+  #   user: glue_user
+  #   tty: true
+  #   stdin_open: true
+  #   volumes:
+  #     - ~/.aws:/home/glue_user/.aws
+  #     - notebooks:/home/glue_user/workspace/jupyter_workspace/
+  #   networks:
+  #     - polaris_network
 
 volumes:
   notebooks:

@@ -19,9 +19,17 @@
 
 FROM jupyter/all-spark-notebook:spark-3.5.0
 
-COPY --chown=jovyan regtests/client /home/jovyan/client
+USER root
+
+COPY regtests/client /home/jovyan/client
+COPY notebooks/SparkPolaris.ipynb /home/jovyan/notebooks/
+RUN chown -R jovyan /home/jovyan/
+RUN chmod -R 7777 /home
+
+USER jovyan
+
 WORKDIR /home/jovyan/
-RUN pip install poetry==1.5.0 && \
+RUN pip install poetry==1.5.0 psycopg2-binary && \
     cd client/python && \
     python3 -m poetry install && \
     pip install -e .

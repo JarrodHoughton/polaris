@@ -28,6 +28,7 @@
     - Note that Postgres database requires default-realm as a database for Polaris to initialize its tables and populate with principal user + credentials
     - Also note that '{realm}' is required at the end of the DB url as this is replaced dynamically with the database name at runtime
     - Took me a while to figure that out lol
+    - Last note: if your postgres database default-realm, hasn't been emptied then a few configs need to change
     - **TODO:** configure persistence.xml file to pull in environment variables or could configure to pull from AWS Secrets Manager, depending on environment maybe?
 - Required update to [build.gradle.kts](./../extension/persistence/eclipselink/build.gradle.kts)
     - include dependency for postgres

@@ -22,7 +22,6 @@
 # subject to aggressive request rate limiting and bandwidth shaping.
 FROM registry.access.redhat.com/ubi9/openjdk-21:1.20-2.1721752936 as build
 ARG ECLIPSELINK=true
-
 # Copy the REST catalog into the container
 COPY --chown=default:root . /app
 
@@ -34,11 +33,16 @@ RUN rm -rf build
 RUN ./gradlew --no-daemon --info -PeclipseLink=$ECLIPSELINK clean shadowJar startScripts
 
 FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:1.20-2.1721752928
+
+USER root
+RUN microdnf install -y postgresql && microdnf clean all
+
 WORKDIR /app
 COPY --from=build /app/polaris-service/build/libs/polaris-service-all.jar /app/lib/polaris-service-all.jar
 COPY --from=build /app/polaris-server.yml /app
 COPY --from=build /app/polaris-service/build/scripts/polaris-service /app/bin/polaris-service
-COPY ./entry-point.sh /app/entry-point.sh
+COPY ./entry-point-postgres.sh /app/entry-point.sh
+RUN chmod +x /app/entry-point.sh
 
 EXPOSE 8181
 

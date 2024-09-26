@@ -71,7 +71,7 @@ featureConfiguration:
     - S3
     - GCS
     - AZURE
-    - FILE
+    # - FILE
 
 
 # Whether we want to enable Snowflake OAuth locally. Setting this to true requires

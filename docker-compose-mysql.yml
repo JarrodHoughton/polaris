@@ -1,0 +1,111 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
+
+services:
+  mysql:
+    image: mysql:latest
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: default-realm
+      MYSQL_PASSWORD: password
+      MYSQL_USER: polaris
+      MYSQL_ROOT_PASSWORD: password
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost"]
+      interval: 5s
+      timeout: 2s
+      retries: 5
+    networks:
+      - polaris_network
+
+  polaris:
+    image: cloudza/polaris:latest
+    ports:
+      - "8181:8181"
+      - "8182"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      AWS_REGION: $AWS_REGION
+      AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+      AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+      MYSQL_USER: root
+      MYSQL_PASSWORD: password
+      MYSQL_URL: jdbc:mysql://mysql:3306/default-realm
+    container_name: polaris
+    healthcheck:
+      test: ["CMD", "curl", "http://localhost:8182/healthcheck"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    networks:
+      - polaris_network
+
+  jupyter:
+    build:
+      context: .
+      dockerfile: ./notebooks/Dockerfile
+      network: host
+    ports:
+      - "8889:8888"
+    depends_on:
+      polaris:
+        condition: service_healthy
+    environment:
+      AWS_REGION: $AWS_REGION
+      POLARIS_HOST: polaris
+    volumes:
+      - notebooks:/home/jovyan/notebooks
+    networks:
+      - polaris_network
+
+  spark:
+    platform: linux/x86_64
+    image: alexmerced/spark35notebook:latest
+    ports: 
+      - 8080:8080  # Master Web UI
+      - 7077:7077  # Master Port
+      - 8888:8888  # Notebook
+    depends_on:
+      polaris:
+        condition: service_healthy
+    environment:
+      AWS_REGION: $AWS_REGION
+      AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+      AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+    container_name: spark
+    user: docker
+    volumes:
+      - notebooks:/home/docker/workspace/jupyter_workspace/
+    networks:
+      - polaris_network
+
+volumes:
+  notebooks:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: ./notebooks
+
+networks:
+  polaris_network:
+    driver: bridge

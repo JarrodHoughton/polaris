@@ -29,6 +29,7 @@ dependencies {
   implementation(platform(libs.dropwizard.bom))
   implementation("io.dropwizard:dropwizard-jackson")
   implementation(libs.postgresql)
+  implementation("com.mysql:mysql-connector-j:8.3.0")
   compileOnly(libs.jetbrains.annotations)
 
   testImplementation(libs.h2)
