@@ -216,6 +216,57 @@ public class PolarisEclipseLinkMetaStoreSessionImpl implements PolarisMetaStoreS
             nodeMap.getNamedItem("value").getNodeValue());
       }
 
+      // Get all environment variables as a Map
+      Map<String, String> env = System.getenv();
+
+      // Iterate through each entry in the Map and print them
+      for (Map.Entry<String, String> entry : env.entrySet()) {
+          String envValue = entry.getValue();
+          String property = entry.getKey();
+            
+          LOGGER.info(
+            "Setting persistence property {} to {}.",
+            property, envValue
+          );
+
+          properties.put(property, envValue);
+      }
+
+      String DB_PORT = "DB_PORT";
+      String DB_HOST = "DB_HOST";
+      String DB_USER = "DB_USER";
+      String DB_PASSWORD = "DB_PASSWORD";
+      
+      String db_url = "jdbc:postgresql://{DB_HOST}:{DB_PORT}/{realm}";
+
+
+      // property overrides for environment variables
+      if (System.getenv(DB_HOST) != null) {
+        db_url = db_url.replace("{DB_HOST}", System.getenv(DB_HOST));
+      } else {
+        db_url = db_url.replace("{DB_HOST}", "postgres");
+      }
+
+      if (System.getenv(DB_PORT) != null) {
+        db_url = db_url.replace("{DB_PORT}", System.getenv(DB_PORT));
+      } else {
+        db_url = db_url.replace("{DB_PORT}", "5432");
+      }
+
+      LOGGER.info("Setting persistence property jakarta.persistence.jdbc.url to {}.", db_url);
+
+      properties.put("jakarta.persistence.jdbc.url", db_url);
+
+      if (System.getenv(DB_USER) != null) {
+        LOGGER.info("Setting persistence property jakarta.persistence.jdbc.user to {}.", System.getenv(DB_USER));
+        properties.put("jakarta.persistence.jdbc.user", System.getenv(DB_USER));
+      }
+
+      if (System.getenv(DB_PASSWORD) != null) {
+        LOGGER.info("Setting persistence property jakarta.persistence.jdbc.password to {}.", System.getenv(DB_PASSWORD));
+        properties.put("jakarta.persistence.jdbc.password", System.getenv(DB_PASSWORD));
+      }
+
       return properties;
     } catch (XPathExpressionException
         | ParserConfigurationException
